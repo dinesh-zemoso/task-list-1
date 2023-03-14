@@ -124,7 +124,7 @@ public final class TaskList implements Runnable {
         out.println();
     }
 
-    public void viewTasks(String commandLine){
+    private void viewTasks(String commandLine){
         String[] subcommandRest = commandLine.split(" ", 3);
         String subcommand = subcommandRest[1];
         if(subcommand.equals("date")){
