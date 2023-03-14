@@ -5,10 +5,10 @@ import java.util.Map;
 
 import static java.lang.System.out;
 
-public class TaskView implements  TaskViewService{
+public class TaskView implements  TaskShowService{
 
     @Override
-    public void showTasks(Map<String, List<Task>> tasks) {
+    public void show(Map<String, List<Task>> tasks) {
         for (Map.Entry<String, List<Task>> project : tasks.entrySet()) {
             out.println(project.getKey());
             for (Task task : project.getValue()) {

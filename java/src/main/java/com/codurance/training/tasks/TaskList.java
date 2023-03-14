@@ -13,16 +13,20 @@ public final class TaskList implements Runnable {
 
     private final Map<String, List<Task>> tasks = new LinkedHashMap<>();
 
-    private final AddProjectImp addProjectImp;
-    private final UncheckTaskImp uncheckTaskImp;
-    private final CheckTaskImp checkTaskImp;
+    private final TaskService addProjectImp;
+    private final TaskActionService uncheckTaskImp;
+    private final TaskActionService checkTaskImp;
+    private final TaskService addTaskImp;
+    private final TaskByIdService taskByIdService;
+    private final TaskShowService taskShowService;
+    private final TaskShowService taskShowBydeadLine;
+    private final TaskDeadLineService taskDeadLineService;
+    private final TaskShowService taskView;
 
-    private final AddTaskImp addTaskImp;
-    private final TaskView taskView;
+    private final TaskShowByDateService taskShowByDateService;
     private final BufferedReader in;
     private final PrintWriter out;
 
-    private long lastId = 0;
 
     public static void main(String[] args) throws Exception {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
@@ -35,6 +39,11 @@ public final class TaskList implements Runnable {
         this.checkTaskImp = new CheckTaskImp();
         this.addProjectImp = new AddProjectImp(tasks);
         this.addTaskImp = new AddTaskImp(tasks);
+        this.taskByIdService = new TaskByIdImp();
+        this.taskShowService = new TaskShowImp();
+        this.taskDeadLineService = new TaskDeadLineImp();
+        this.taskShowByDateService = new TaskShowByDateImp();
+        this.taskShowBydeadLine = new TaskByDeadLine();
         this.taskView = new TaskView();
         this.in = reader;
         this.out = writer;
@@ -71,22 +80,22 @@ public final class TaskList implements Runnable {
                 setDone(commandRest[1], uncheckTaskImp);
                 break;
             case "help":
-                help();
+                UtilityClass.help();
                 break;
             case "deadline":
-                setDeadLine(commandRest[1]);
+                taskDeadLineService.setDeadLine(commandRest[1], tasks);
                 break;
             case "today":
-                showTodayTasks();
+                taskShowService.show(tasks);
                 break;
             case "delete":
-                delete(commandRest[1]);
+                taskByIdService.remove(commandRest[1], tasks);
                 break;
             case "view":
                 viewTasks(commandRest[1]);
                 break;
             default:
-                error(command);
+                UtilityClass.error(command);
                 break;
         }
     }
@@ -115,103 +124,16 @@ public final class TaskList implements Runnable {
         out.println();
     }
 
-    private void help() {
-        out.println("Commands:");
-        out.println("  view by project");
-        out.println("  add project <project name>");
-        out.println("  add task <project name> <task description> <task id>");
-        out.println("  check <task ID>");
-        out.println("  uncheck <task ID>");
-        out.println("  view by date <date>");
-        out.println("  view by deadline");
-        out.println("  today");
-        out.println("  delete <task_id>");
-        out.println();
-    }
-
-    private void error(String command) {
-        out.printf("I don't know what the command \"%s\" is.", command);
-        out.println();
-    }
-
-    private void setDeadLine(String command){
-        String[] subcommandRest = command.split(" ", 2);
-        String taskId = subcommandRest[0];
-        String deadLine = subcommandRest[1];
-
-        for (Map.Entry<String, List<Task>> project : tasks.entrySet()) {
-            for (Task task : project.getValue()) {
-                if (task.getId().equals(taskId)) {
-                    task.setDeadline(LocalDate.parse(deadLine));
-                    return;
-                }
-            }
-        }
-        out.printf("Could not find a task with an ID of %s.%n", taskId);
-    }
-
-    private void showTodayTasks(){
-        LocalDate currentDate = LocalDate.now();
-
-        for (Map.Entry<String, List<Task>> project : tasks.entrySet()) {
-            out.println(project.getKey());
-            for (Task task : project.getValue()) {
-                LocalDate deadline = task.getDeadline();
-                if (deadline != null && deadline.equals(currentDate)) {
-                    out.printf("    [%c] %s: %s : %s%n", (task.isDone() ? 'x' : ' '), task.getId(),
-                            task.getDescription(), deadline);
-                }
-            }
-            out.println();
-        }
-    }
-
-    public void delete(String strId) {
-        for (List<Task> projectTasks : tasks.values()) {
-            for (Task task : projectTasks) {
-                if (task.getId().equals(strId)) {
-                    projectTasks.remove(task);
-                    return;
-                }
-            }
-        }
-        out.printf("Could not find a task with an ID of %s.%n", strId);
-    }
-
     public void viewTasks(String commandLine){
         String[] subcommandRest = commandLine.split(" ", 3);
         String subcommand = subcommandRest[1];
         if(subcommand.equals("date")){
-            viewTasksBydate(subcommandRest[2]);
+            taskShowByDateService.showByDate(subcommandRest[2], tasks);
         }else if(subcommand.equals("project")){
-            taskView.showTasks(tasks);
+            taskView.show(tasks);
         }
         else {
-            viewTasksByDeadLine();
-        }
-    }
-
-    private void viewTasksBydate(String date) {
-        for (Map.Entry<String, List<Task>> project : tasks.entrySet()) {
-            for (Task task : project.getValue()) {
-                if (task.getDeadline() != null && task.getDeadline().toString().equals(date)) {
-                    out.printf("    [%c] %s: %s%n", (task.isDone() ? 'x' : ' '), task.getId(), task.getDescription());
-                }
-            }
-            out.println();
-        }
-    }
-
-    public void viewTasksByDeadLine(){
-        List<Task> allTasks = new ArrayList<>();
-        for (List<Task> tasks : this.tasks.values()) {
-            allTasks.addAll(tasks);
-        }
-        allTasks.sort(Comparator.comparing(Task::getDeadline));
-        for (Task task : allTasks) {
-            if (task.getDeadline() != null) {
-                out.printf("%s: %s : %s%n", task.getId(),task.getDescription(), task.getDeadline());
-            }
+            taskShowBydeadLine.show(tasks);
         }
     }
 }
